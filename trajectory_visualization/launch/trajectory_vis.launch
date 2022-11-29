@@ -1,6 +1,7 @@
 <launch>
     <node name="trajectory_visualization" pkg="trajectory_visualization" type="trajectory_vis" output="screen">
         <param name="interval" value="0.1" />
+        <param name="verbose" value="false" />
 
     </node>
 

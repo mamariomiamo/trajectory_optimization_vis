@@ -13,6 +13,7 @@ int waypoint_num_;
 std::vector<Eigen::Vector3d> waypt_list;
 
 double interval;
+bool verbose;
 
 bool trajectory_generation_trigger = false;
 
@@ -145,23 +146,25 @@ void visualizeTrajectory(ros::Publisher &publisher_pos, ros::Publisher &publishe
     publisher_pos.publish(trajectory_pos);
     publisher_vel.publish(trajectory_vel);
     publisher_acc.publish(trajectory_acc);
-
-    std::cout << "position\n";
-    for (auto pos : traj_pos)
+    if (verbose)
     {
-        std::cout << pos.transpose() << std::endl;
-    }
+        std::cout << "position\n";
+        for (auto pos : traj_pos)
+        {
+            std::cout << pos.transpose() << std::endl;
+        }
 
-    std::cout << "velocity\n";
-    for (auto vel : traj_vel)
-    {
-        std::cout << vel.transpose() << std::endl;
-    }
+        std::cout << "velocity\n";
+        for (auto vel : traj_vel)
+        {
+            std::cout << vel.transpose() << std::endl;
+        }
 
-    std::cout << "acceleration\n";
-    for (auto acc : traj_acc)
-    {
-        std::cout << acc.transpose() << std::endl;
+        std::cout << "acceleration\n";
+        for (auto acc : traj_acc)
+        {
+            std::cout << acc.transpose() << std::endl;
+        }
     }
 }
 
@@ -210,6 +213,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh("~");
 
     nh.param("interval", interval, 0.5);
+    nh.param("verbose", verbose, false);
 
     waypt_sub =
         nh.subscribe("/waypoints", 1, wayptCallback);
@@ -227,20 +231,24 @@ int main(int argc, char **argv)
             std::cout << "triggered trajectory generation" << std::endl;
             std::cout << "Generating trajectory that goes through " << waypt_list.size() << " waypoints\n";
             const auto close_form_tic = high_resolution_clock::now();
-            auto min_snap_close_form = std::make_shared<MIN_SNAP::min_snap_traj>(waypt_list, 3, true);
+            auto min_snap_close_form = std::make_shared<MIN_SNAP::min_snap_traj>(waypt_list, 3, true, verbose);
             // std::shared_ptr<MIN_SNAP::min_snap_traj> min_snap_close_form = std::make_shared<MIN_SNAP::min_snap_traj>(waypt_list, 3, true);
             MIN_SNAP::poly_traj trajectory;
             trajectory = min_snap_close_form->computeTrajectory(waypt_list);
+            const auto close_form_toc = high_resolution_clock::now();
+            auto close_form_time_lapsed = duration<double>(close_form_toc - close_form_tic).count();
 
             std::vector<double> time_allocation = trajectory.time_duration;
 
-            std::cout << "time_allocation\n";
-            for (auto time : time_allocation)
+            if (verbose)
             {
-                std::cout << time << std::endl;
+                std::cout << "time_allocation\n";
+                for (auto time : time_allocation)
+                {
+                    std::cout << time << std::endl;
+                }
             }
-            std::cout << "time_allocation size is " << time_allocation.size() << std::endl;
-            std::cout << ".........\n";
+
             std::vector<Eigen::MatrixXd> min_snap_coeff = trajectory.coeff;
 
             std::vector<Eigen::MatrixXd> min_snap_coeff_reshaped;
@@ -268,26 +276,27 @@ int main(int argc, char **argv)
             // each entry of the vector is the polynomial coefficients matrix (3 columns for 3 axis) for one segment
             visualizeTrajectory(trajectory_pub, vel_pub, acc_pub, time_allocation, min_snap_coeff_reshaped);
 
-            const auto close_form_toc = high_resolution_clock::now();
-            auto close_form_time_lapsed = duration<double>(close_form_toc - close_form_tic).count();
             std::cout << "close form computation time in (ms):\n";
             std::cout << close_form_time_lapsed * 1000 << std::endl;
-            for (auto &entry : trajectory.coeff)
+            if (verbose)
             {
-                std::cout << entry << std::endl;
-                std::cout << "-------------\n";
-            }
+                for (auto &entry : trajectory.coeff)
+                {
+                    std::cout << entry << std::endl;
+                    std::cout << "-------------\n";
+                }
 
-            std::cout << "After reshape\n";
+                std::cout << "After reshape\n";
 
-            for (auto &entry : min_snap_coeff_reshaped)
-            {
-                std::cout << entry << std::endl;
-                std::cout << "-------------\n";
+                for (auto &entry : min_snap_coeff_reshaped)
+                {
+                    std::cout << entry << std::endl;
+                    std::cout << "-------------\n";
+                }
             }
 
             const auto qp_tic = high_resolution_clock::now();
-            auto min_snap_qp = std::make_shared<MIN_SNAP::min_snap_traj>(waypt_list, 3, false);
+            auto min_snap_qp = std::make_shared<MIN_SNAP::min_snap_traj>(waypt_list, 3, false, verbose);
             MIN_SNAP::poly_traj trajectory_qp;
             trajectory_qp = min_snap_qp->computeTrajectory(waypt_list);
             const auto qp_toc = high_resolution_clock::now();
@@ -295,9 +304,12 @@ int main(int argc, char **argv)
 
             std::cout << "QP computation time in (ms):\n";
             std::cout << qp_time_lapsed * 1000 << std::endl;
-            for (auto entry : trajectory_qp.coeff)
+            if (verbose)
             {
-                std::cout << entry << std::endl;
+                for (auto entry : trajectory_qp.coeff)
+                {
+                    std::cout << entry << std::endl;
+                }
             }
 
             trajectory_generation_trigger = false;
