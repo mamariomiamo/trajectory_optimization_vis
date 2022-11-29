@@ -1,0 +1,8 @@
+[submodule "trajectory_visualization/include/trajectory_lib"]
+	path = trajectory_visualization/include/trajectory_lib
+	url = git@github.com:mamariomiamo/trajectory_lib.git
+	branch = main
+[submodule "waypoint_navigation_plugin"]
+	path = waypoint_navigation_plugin
+	url = git@github.com:mamariomiamo/waypoint_navigation_plugin.git
+	branch = main
