@@ -1,5 +1,8 @@
 <launch>
-<node name="trajectory_visualization" pkg="trajectory_visualization" type="trajectory_vis" output="screen"/>
+    <node name="trajectory_visualization" pkg="trajectory_visualization" type="trajectory_vis" output="screen">
+        <param name="interval" value="0.1" />
 
-<node type="rviz" name="rviz" pkg="rviz" args="-d $(find trajectory_visualization)/config/traj_vis.rviz" output="screen" />
+    </node>
+
+    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find trajectory_visualization)/config/traj_vis.rviz" output="screen" />
 </launch>
